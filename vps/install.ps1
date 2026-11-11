@@ -35,15 +35,15 @@ function Test-Health([int]$Port) {
   Start-Sleep -Seconds 3
   try {
     $h = Invoke-RestMethod -Uri "http://127.0.0.1:$Port/health" -TimeoutSec 5
-    Write-Host "OK: listener đang chạy (sessions=$($h.sessions)). Log: $Dir\listener.log"
+    Write-Host "OK: listener dang chay (sessions=$($h.sessions)). Log: $Dir\listener.log"
   } catch {
-    Write-Warning "Listener chưa phản hồi. Xem $Dir\listener.log"
+    Write-Warning "Listener chua phan hoi. Xem $Dir\listener.log"
     exit 2
   }
 }
 
 if ($Update) {
-  if (-not (Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue)) { throw 'Chưa cài listener. Chạy install.ps1 -Key "<KHÓA>" trước.' }
+  if (-not (Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue)) { throw 'Chua cai listener. Chay install.ps1 -Key "<KHOA>" truoc.' }
   $src = Join-Path $PSScriptRoot 'stun-listener.cjs'
   Stop-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
   Stop-Listener
@@ -64,20 +64,20 @@ Get-NetFirewallRule -DisplayName "$RulePrefix*" -ErrorAction SilentlyContinue | 
 
 if ($Uninstall) {
   if (Test-Path $Dir) { Remove-Item -Recurse -Force $Dir }
-  Write-Host 'Đã gỡ listener, scheduled task và firewall rule.'
+  Write-Host 'Da go listener, scheduled task va firewall rule.'
   return
 }
 
-if (-not $Key -or $Key.Length -lt 16) { throw 'Cần -Key "<chuỗi bí mật >= 16 ký tự>" (giống GROUND_KEY ở máy chạy SentinelFP)' }
-if ($Key -match '[\s"%^&|<>]') { throw 'Key chỉ nên gồm chữ, số, - và _ (dùng lệnh tạo key trong README)' }
+if (-not $Key -or $Key.Length -lt 16) { throw 'Can -Key "<chuoi bi mat >= 16 ky tu>" (giong GROUND_KEY o may chay SentinelFP)' }
+if ($Key -match '[\s"%^&|<>]') { throw 'Key chi nen gom chu, so, - va _ (dung lenh tao key trong README)' }
 $node = (Get-Command node -ErrorAction Stop).Definition
 $src = Join-Path $PSScriptRoot 'stun-listener.cjs'
-if (-not (Test-Path $src)) { throw "Không thấy $src" }
+if (-not (Test-Path $src)) { throw "Khong thay $src" }
 
 # Kiểm tra cổng còn trống
 $busyUdp = Get-NetUDPEndpoint -LocalPort $StunPort -ErrorAction SilentlyContinue
 $busyTcp = Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue | Where-Object { $_.LocalPort -in $StunPort, $ApiPort }
-if ($busyUdp -or $busyTcp) { throw "Cổng $StunPort/$ApiPort đang bị chiếm, chọn cổng khác bằng -StunPort / -ApiPort" }
+if ($busyUdp -or $busyTcp) { throw "Cong $StunPort/$ApiPort dang bi chiem, chon cong khac bang -StunPort / -ApiPort" }
 
 New-Item -ItemType Directory -Force $Dir | Out-Null
 Copy-Item $src $Dir -Force
@@ -111,5 +111,5 @@ if ($ApiAllowFrom.Count) { $api.RemoteAddress = $ApiAllowFrom }
 New-NetFirewallRule @api | Out-Null
 
 Start-ScheduledTask -TaskName $TaskName
-Write-Host "Nhớ mở UDP $StunPort, TCP $StunPort, TCP $ApiPort trong firewall của nhà cung cấp VPS (nếu có)."
+Write-Host "Nho mo UDP $StunPort, TCP $StunPort, TCP $ApiPort trong firewall cua nha cung cap VPS (neu co)."
 Test-Health $ApiPort

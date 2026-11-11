@@ -30,7 +30,7 @@ const MAGIC = 0x2112a442;
 const MAX_PKT_PER_MIN = 300;
 
 if (KEY.length < 16) {
-  console.error('[stun] Thiếu GROUND_KEY (>= 16 ký tự). Ví dụ: set GROUND_KEY=chuoi-bi-mat-dai');
+  console.error('[stun] Thieu GROUND_KEY (>= 16 ky tu). Vi du: set GROUND_KEY=chuoi-bi-mat-dai');
   process.exit(1);
 }
 
@@ -193,8 +193,8 @@ function startUdp(type) {
     const res = handle(msg, ip, rinfo.port, 'udp');
     if (res) sock.send(res, rinfo.port, rinfo.address);
   });
-  sock.on('error', (e) => { log(`[stun] ${type} lỗi: ${e.message}`); try { sock.close(); } catch (_) { /* noop */ } });
-  sock.bind(STUN_PORT, type === 'udp6' ? '::' : '0.0.0.0', () => log(`[stun] ${type} lắng nghe :${STUN_PORT}`));
+  sock.on('error', (e) => { log(`[stun] ${type} error: ${e.message}`); try { sock.close(); } catch (_) { /* noop */ } });
+  sock.bind(STUN_PORT, type === 'udp6' ? '::' : '0.0.0.0', () => log(`[stun] ${type} listening :${STUN_PORT}`));
 }
 startUdp('udp4');
 startUdp('udp6');
@@ -219,8 +219,8 @@ net.createServer((s) => {
       if (res) s.write(res);
     }
   });
-}).on('error', (e) => log(`[stun] tcp lỗi: ${e.message}`))
-  .listen(STUN_PORT, () => log(`[stun] tcp lắng nghe :${STUN_PORT}`));
+}).on('error', (e) => log(`[stun] tcp error: ${e.message}`))
+  .listen(STUN_PORT, () => log(`[stun] tcp listening :${STUN_PORT}`));
 
 // ---------- API tra cứu ----------
 const safeEq = (a, b) => {
@@ -243,4 +243,4 @@ http.createServer((req, res) => {
     sources: s ? [...s.sources.values()] : [],
     bindings: bindings.filter((b) => b.t >= since && ports.has(b.port)).slice(-50),
   });
-}).listen(API_PORT, () => log(`[api] lắng nghe :${API_PORT}`));
+}).listen(API_PORT, () => log(`[api] listening :${API_PORT}`));
