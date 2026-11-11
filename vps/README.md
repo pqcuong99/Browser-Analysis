@@ -42,6 +42,14 @@ bằng tài khoản `LOCAL SERVICE` (tự chạy lại nếu crash) và 3 firewa
 Kiểm tra: `Invoke-RestMethod http://127.0.0.1:8478/health` → `ok: True`.
 Gỡ toàn bộ: `powershell -ExecutionPolicy Bypass -File .\install.ps1 -Uninstall`.
 
+## Cập nhật bằng git (khuyên dùng)
+
+Clone repo lên VPS một lần (cần Git for Windows), sau đó mỗi lần cập nhật chỉ cần chuột phải
+`update_vps_and_run.bat` ở thư mục gốc repo → **Run as administrator**. File này `git pull --ff-only`, rồi:
+
+- chưa cài listener → hỏi GROUND_KEY (và IP nhà nếu muốn giới hạn API) rồi chạy `install.ps1`;
+- đã cài → `install.ps1 -Update`: thay `stun-listener.cjs` mới, chạy lại, giữ nguyên khóa, cổng và firewall rule.
+
 ## Cấu hình máy chạy SentinelFP
 
 Tạo file `.env` ở thư mục gốc project (server tự đọc khi khởi động):

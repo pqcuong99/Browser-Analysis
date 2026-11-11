@@ -1,0 +1,4 @@
+# Script Windows phải giữ CRLF khi checkout trên VPS, kể cả khi core.autocrlf=false (cmd đọc sai label/goto với LF)
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf

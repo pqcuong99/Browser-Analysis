@@ -3,6 +3,7 @@
 #
 #   powershell -ExecutionPolicy Bypass -File .\install.ps1 -Key "<GROUND_KEY>"
 #   powershell -ExecutionPolicy Bypass -File .\install.ps1 -Key "<GROUND_KEY>" -ApiAllowFrom 123.17.23.145
+#   powershell -ExecutionPolicy Bypass -File .\install.ps1 -Update      (thay bản listener mới, giữ cấu hình)
 #   powershell -ExecutionPolicy Bypass -File .\install.ps1 -Uninstall
 #
 # Không đụng tới IIS / web đang chạy: tiến trình riêng, cổng riêng (UDP+TCP 3478, TCP 8478), thư mục riêng.
@@ -13,7 +14,9 @@ param(
   [string]$Dir = 'C:\sentinelfp-ground',
   # IP được phép gọi API tra cứu (IP nhà bạn). Bỏ trống = mọi IP, vẫn cần khóa.
   [string[]]$ApiAllowFrom = @(),
-  [switch]$Uninstall
+  [switch]$Uninstall,
+  # Chỉ thay stun-listener.cjs bằng bản mới rồi chạy lại; giữ nguyên khóa, cổng, firewall rule
+  [switch]$Update
 )
 $ErrorActionPreference = 'Stop'
 $TaskName = 'SentinelFP Ground Listener'
@@ -26,6 +29,30 @@ function Stop-Listener {
   Get-CimInstance Win32_Process -Filter "Name='cmd.exe'" |
     Where-Object { $_.CommandLine -like '*sentinelfp-ground*run.cmd*' } |
     ForEach-Object { Stop-Process -Id $_.ProcessId -Force }
+}
+
+function Test-Health([int]$Port) {
+  Start-Sleep -Seconds 3
+  try {
+    $h = Invoke-RestMethod -Uri "http://127.0.0.1:$Port/health" -TimeoutSec 5
+    Write-Host "OK: listener đang chạy (sessions=$($h.sessions)). Log: $Dir\listener.log"
+  } catch {
+    Write-Warning "Listener chưa phản hồi. Xem $Dir\listener.log"
+    exit 2
+  }
+}
+
+if ($Update) {
+  if (-not (Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue)) { throw 'Chưa cài listener. Chạy install.ps1 -Key "<KHÓA>" trước.' }
+  $src = Join-Path $PSScriptRoot 'stun-listener.cjs'
+  Stop-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
+  Stop-Listener
+  Copy-Item $src $Dir -Force
+  Start-ScheduledTask -TaskName $TaskName
+  # Đọc cổng API đang dùng từ run.cmd
+  $m = Select-String -Path "$Dir\run.cmd" -Pattern '^set API_PORT=(\d+)' | Select-Object -First 1
+  Test-Health ($(if ($m) { [int]$m.Matches[0].Groups[1].Value } else { $ApiPort }))
+  return
 }
 
 if (Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue) {
@@ -84,11 +111,5 @@ if ($ApiAllowFrom.Count) { $api.RemoteAddress = $ApiAllowFrom }
 New-NetFirewallRule @api | Out-Null
 
 Start-ScheduledTask -TaskName $TaskName
-Start-Sleep -Seconds 3
-try {
-  $h = Invoke-RestMethod -Uri "http://127.0.0.1:$ApiPort/health" -TimeoutSec 5
-  Write-Host "OK: listener đang chạy (sessions=$($h.sessions)). Log: $Dir\listener.log"
-} catch {
-  Write-Warning "Listener chưa phản hồi. Xem $Dir\listener.log"
-}
 Write-Host "Nhớ mở UDP $StunPort, TCP $StunPort, TCP $ApiPort trong firewall của nhà cung cấp VPS (nếu có)."
+Test-Health $ApiPort
