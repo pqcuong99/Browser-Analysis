@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Đang kiểm tra trình duyệt · SentinelFP</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body class="center">
+<div class="gate-card" id="card">
+  <div class="spinner" role="status" aria-label="Đang kiểm tra"></div>
+  <div class="gate-code">SECURITY CHECK</div>
+  <h1>Đang kiểm tra trình duyệt…</h1>
+  <p>Quá trình này mất vài giây và chỉ diễn ra một lần mỗi phiên.</p>
+</div>
+<script src="/probe.js"></script>
+<script src="/pow.js"></script>
+<script>
+(async () => {
+  const card = document.getElementById('card');
+  const raw = new URLSearchParams(location.search).get('next') || '/';
+  // Chống open redirect: chỉ cho phép đường dẫn nội bộ
+  const next = raw.startsWith('/') && !raw.startsWith('//') && !raw.startsWith('/\\') ? raw : '/';
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+  // Màn hình production: không tiết lộ rule nào đã kích hoạt, chỉ có mã tham chiếu
+  const show = (kind, code, title, text, ref, link) => {
+    card.className = 'gate-card ' + (kind === 'fail' ? 'is-block' : '');
+    card.replaceChildren(el('div', 'gate-icon ' + kind, kind === 'fail' ? '⛔' : kind === 'pass' ? '✓' : '⚠'), el('div', 'gate-code', code), el('h1', null, title), el('p', null, text));
+    if (ref) { const r = el('div', 'gate-ref'); r.append(el('span', null, 'Reference ID'), el('code', null, ref)); card.append(r); }
+    if (link) { const a = el('a', 'btn', link.text); a.href = link.href; card.append(a); }
+  };
+
+  async function runChallenge(scanId) {
+    card.className = 'gate-card';
+    const bar = el('div', 'pow-bar'); const fill = el('i'); bar.append(fill);
+    const stat = el('div', 'pow-stat', 'Đang nhận thử thách…');
+    card.replaceChildren(el('div', 'gate-icon warn', '⚙'), el('div', 'gate-code', 'VERIFICATION · PROOF-OF-WORK'),
+      el('h1', null, 'Đang xác minh bổ sung…'),
+      el('p', null, 'Trình duyệt của bạn đang giải một bài toán tính toán nhỏ để chứng minh đây là người dùng thật. Không cần thao tác gì.'),
+      bar, stat);
+    try {
+      const r = await window.SentinelPoW.solve({
+        onProgress: (p) => {
+          // Tiến độ ước lượng theo kỳ vọng 2^d phép băm (có thể vượt 100% do may rủi)
+          fill.style.width = Math.min(96, (p.hashes / p.expected) * 100) + '%';
+          stat.textContent = `${(p.hashes / 1000).toFixed(0)}k / ~${(p.expected / 1000).toFixed(0)}k phép băm · độ khó ${p.difficulty} bit · ${p.ms} ms`;
+        },
+      });
+      fill.style.width = '100%';
+      stat.textContent = `Hoàn tất: ${(r.hashes / 1000).toFixed(0)}k phép băm trong ${r.ms} ms`;
+      show('pass', 'HTTP 200 · VERIFIED', 'Xác minh thành công', 'Đang chuyển hướng… Phiên này được theo dõi thêm và giới hạn tốc độ truy cập.', scanId);
+      setTimeout(() => location.replace(next), 900);
+    } catch (e) {
+      show('warn', 'VERIFICATION FAILED', 'Không xác minh được', String(e.message || e), scanId, { href: location.href, text: 'Thử lại' });
+    }
+  }
+
+  try {
+    // Phiên đang chờ challenge (bị guard chuyển về đây) thì giải luôn, không quét lại
+    const me = await fetch('/api/me', { credentials: 'include', cache: 'no-store' }).then((r) => r.json()).catch(() => ({}));
+    if (me.verified && me.decision === 'CHALLENGE') return runChallenge(me.sid);
+    if (me.verified && me.decision === 'ALLOW') { location.replace(next); return; }
+
+    const res = await window.SentinelFP.verify();
+    const action = res.report.scoring_breakdown.enforcement_action;
+    if (action === 'ALLOW' || res.mode === 'monitor') { location.replace(next); return; }
+    if (action === 'CHALLENGE') return runChallenge(res.scanId);
+    show('fail', 'HTTP 403 · ACCESS DENIED', 'Truy cập bị từ chối', 'Trình duyệt của bạn không đáp ứng chính sách bảo mật của hệ thống. Nếu đây là nhầm lẫn, hãy liên hệ hỗ trợ kèm mã tham chiếu.', res.scanId);
+  } catch (e) {
+    show('warn', 'CHECK FAILED', 'Không kiểm tra được trình duyệt', String(e.message || e) + '. Hãy bật JavaScript và tải lại trang.', null, { href: location.href, text: 'Thử lại' });
+  }
+})();
+</script>
+</body>
+</html>

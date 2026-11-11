@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { color-scheme: dark; }
+  body {
+    @apply bg-canvas font-sans text-sm text-ink antialiased;
+    /* Ánh sáng nền rất nhẹ để các lớp kính mờ có chiều sâu */
+    background-image: radial-gradient(60rem 30rem at 15% -10%, theme('colors.accent.500 / 6%'), transparent),
+      radial-gradient(50rem 26rem at 100% 0%, theme('colors.fail.500 / 5%'), transparent);
+    background-attachment: fixed;
+  }
+  ::selection { @apply bg-accent-500/30 text-ink-strong; }
+  :focus-visible { @apply outline outline-2 outline-offset-2 outline-accent-400; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { @apply rounded-full border-2 border-solid border-transparent bg-zinc-700 bg-clip-padding; }
+  ::-webkit-scrollbar-track { background: transparent; }
+}
+
+@layer components {
+  /* Khối nhập liệu dùng chung */
+  .field-input {
+    @apply h-9 rounded-lg border border-line-strong bg-sunken px-3 text-sm text-ink placeholder:text-ink-faint
+      focus:border-accent-500 focus:outline-none focus:ring-2 focus:ring-accent-500/20;
+  }
+  .eyebrow { @apply font-mono text-xxs font-semibold uppercase tracking-widest text-ink-faint; }
+}
+
+@layer utilities {
+  .text-xxs { font-size: 0.6875rem; line-height: 1rem; }
+  .tabular { font-variant-numeric: tabular-nums; }
+  /* Cuộn ngang được nhưng không hiện thanh cuộn (thanh tab trên mobile) */
+  .no-scrollbar { scrollbar-width: none; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fail-pulse, .animate-pulse, .animate-slide-in { animation: none !important; }
+}

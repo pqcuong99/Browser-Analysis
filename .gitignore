@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+
+# Build output (vite build)
+dist/
+*.tsbuildinfo
+.vite/
+
+# Dữ liệu chạy: DB scan (có IP, fingerprint), chứng chỉ TLS tự ký (có private key), dữ liệu lab
+data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+
+# Bí mật: BG_SECRET, ADMIN_KEY, GROUND_KEY...
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+*.pfx
+
+# Log (kể cả listener.log của vps/stun-listener.cjs nếu chạy thử tại chỗ)
+*.log
+logs/
+npm-debug.log*
+
+# Claude Code: cài đặt cá nhân (giữ launch.json để chia sẻ cấu hình preview)
+.claude/settings.local.json
+
+# Editor / hệ điều hành
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Test / coverage
+coverage/
+.nyc_output/
